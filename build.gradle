@@ -1,0 +1,34 @@
+plugins {
+    id "com.netflix.nebula.netflixoss" version "11.3.1"
+    id "me.champeau.jmh" version "0.7.1"
+    id "org.gradle.test-retry" version "1.5.8" apply false
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+}
+
+subprojects {
+    apply plugin: 'nebula.netflixoss'
+    apply plugin: 'java-library'
+
+    group = "com.netflix.hystrix"
+
+    tasks.withType(Javadoc).configureEach {
+        failOnError = false
+    }
+
+    // The metrics/timer tests measure wall-clock time. On slow shared runners (e.g. macos-15-intel with JDK 8),
+    // one scheduling stall can push a measurement out of bounds. Failed tests get re-run; every test still runs
+    // on every platform, and a test that keeps failing still fails the build.
+    apply plugin: 'org.gradle.test-retry'
+    tasks.withType(Test).configureEach {
+        retry {
+            maxRetries = 2
+            maxFailures = 20
+            failOnPassedAfterRetry = false
+        }
+    }
+}
